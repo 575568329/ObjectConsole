@@ -2,6 +2,19 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { pantryClient } from '@/services/pantryClient'
 
+// 内置项目列表（固定项目，不可删除）
+const BUILT_IN_PROJECTS = [
+  {
+    id: 'built_in_moyu_resou',
+    name: '摸鱼热搜',
+    pantryKey: '9eafe9e6-8ff7-41ab-b111-ecabbc1685a7',
+    basketName: 'newBasket88',
+    description: '🔥 摸鱼热搜 - 全网热搜聚合平台',
+    builtIn: true,
+    createdAt: '2024-01-01T00:00:00.000Z'
+  }
+]
+
 export const useProjectStore = defineStore('project', () => {
   // 项目列表
   const projects = ref([])
@@ -20,6 +33,14 @@ export const useProjectStore = defineStore('project', () => {
         projects.value = JSON.parse(saved)
       }
 
+      // 合并内置项目（避免重复添加）
+      BUILT_IN_PROJECTS.forEach(builtIn => {
+        const exists = projects.value.find(p => p.id === builtIn.id)
+        if (!exists) {
+          projects.value.unshift(builtIn) // 内置项目放在最前面
+        }
+      })
+
       // 加载当前项目
       const currentProjectId = localStorage.getItem('current_project_id')
       if (currentProjectId && projects.value.length > 0) {
@@ -33,9 +54,10 @@ export const useProjectStore = defineStore('project', () => {
     }
   }
 
-  // 保存项目列表到 localStorage
+  // 保存项目列表到 localStorage（排除内置项目）
   const saveProjects = () => {
-    localStorage.setItem('analytics_projects', JSON.stringify(projects.value))
+    const userProjects = projects.value.filter(p => !p.builtIn)
+    localStorage.setItem('analytics_projects', JSON.stringify(userProjects))
   }
 
   // 添加项目
@@ -68,8 +90,13 @@ export const useProjectStore = defineStore('project', () => {
     }
   }
 
-  // 删除项目
+  // 删除项目（内置项目不可删除）
   const removeProject = (id) => {
+    const project = projects.value.find(p => p.id === id)
+    if (project?.builtIn) {
+      throw new Error('内置项目不可删除')
+    }
+
     const index = projects.value.findIndex(p => p.id === id)
     if (index !== -1) {
       projects.value.splice(index, 1)

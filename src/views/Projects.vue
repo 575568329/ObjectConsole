@@ -18,10 +18,15 @@
         <el-card class="project-card hover" @click="selectProject(project)">
           <div class="project-header">
             <div class="project-icon">
-              📂
+              {{ project.builtIn ? '🔥' : '📂' }}
             </div>
             <div class="project-info">
-              <h3 class="project-name">{{ project.name }}</h3>
+              <h3 class="project-name">
+                {{ project.name }}
+                <el-tag v-if="project.builtIn" type="danger" size="small" style="margin-left: 8px">
+                  官方
+                </el-tag>
+              </h3>
               <p class="project-desc">{{ project.description || '暂无描述' }}</p>
             </div>
           </div>
@@ -37,10 +42,19 @@
             >
               {{ projectStore.currentProject?.id === project.id ? '当前项目' : '设为当前' }}
             </el-button>
-            <el-button size="small" @click="editProject(project)">
+            <el-button
+              size="small"
+              @click="editProject(project)"
+              :disabled="project.builtIn"
+            >
               ✏️ 编辑
             </el-button>
-            <el-button size="small" type="danger" @click="confirmDelete(project)">
+            <el-button
+              size="small"
+              type="danger"
+              @click="confirmDelete(project)"
+              :disabled="project.builtIn"
+            >
               🗑️ 删除
             </el-button>
           </div>
@@ -211,6 +225,12 @@ const setProject = (project) => {
 
 // 编辑项目
 const editProject = (project) => {
+  // 检查是否是内置项目
+  if (project.builtIn) {
+    ElMessage.warning('内置项目不可编辑')
+    return
+  }
+
   editForm.value = {
     id: project.id,
     name: project.name,
@@ -223,6 +243,12 @@ const editProject = (project) => {
 
 // 确认删除
 const confirmDelete = (project) => {
+  // 检查是否是内置项目
+  if (project.builtIn) {
+    ElMessage.warning('内置项目不可删除')
+    return
+  }
+
   ElMessageBox.confirm(
     `确定要删除项目 "${project.name}" 吗？此操作不可恢复。`,
     '删除确认',
@@ -355,6 +381,12 @@ onMounted(() => {
       .project-actions {
         display: flex;
         gap: 8px;
+
+        // 禁用按钮样式
+        .el-button:disabled {
+          cursor: not-allowed;
+          opacity: 0.5;
+        }
       }
     }
   }
