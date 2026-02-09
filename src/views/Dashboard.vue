@@ -151,6 +151,20 @@
         </el-col>
       </el-row>
 
+      <!-- 平台切换统计 -->
+      <el-row :gutter="20" class="charts-row" v-if="displayAnalytics?.platformSwitches && displayAnalytics.platformSwitches.length > 0">
+        <el-col :span="24">
+          <el-card class="chart-card">
+            <template #header>
+              <div class="card-header">
+                <span>🔄 平台切换统计 (共 {{ displayAnalytics.totalSwitches || 0 }} 次切换)</span>
+              </div>
+            </template>
+            <PlatformSwitchChart :data="displayAnalytics.platformSwitches" />
+          </el-card>
+        </el-col>
+      </el-row>
+
       <!-- 链接点击统计 -->
       <el-row :gutter="20" class="table-row" v-if="displayAnalytics?.linkClicks && displayAnalytics.linkClicks.length > 0">
         <el-col :span="24">
@@ -341,6 +355,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useProjectStore } from '@/stores/projectStore'
 import EventTypeChart from '@/components/charts/EventTypeChart.vue'
 import DailyTrendChart from '@/components/charts/DailyTrendChart.vue'
+import PlatformSwitchChart from '@/components/charts/PlatformSwitchChart.vue'
 import { ElMessage } from 'element-plus'
 import { Refresh, Clock, Calendar } from '@element-plus/icons-vue'
 
@@ -579,6 +594,7 @@ const analyzeData = (events) => {
   const dailyStats = {}
   const userSet = new Set()
   const linkClicks = new Map() // 使用 Map 存储链接点击信息
+  const platformSwitches = new Map() // 使用 Map 存储平台切换信息
 
   events.forEach(event => {
     // 事件类型统计
@@ -626,6 +642,24 @@ const analyzeData = (events) => {
       linkData.lastClick = event.timestamp
       linkData.dates.push(new Date(event.timestamp))
     }
+
+    // 平台切换统计
+    if (event.type === 'platform_switch') {
+      const platformId = event.data?.platform || event.data?.platformId || 'unknown'
+      const platformInfo = getPlatformInfo(platformId)
+      const platformName = platformInfo.name
+
+      if (!platformSwitches.has(platformId)) {
+        platformSwitches.set(platformId, {
+          platformId,
+          platformName,
+          count: 0,
+          category: platformInfo.category
+        })
+      }
+      const switchData = platformSwitches.get(platformId)
+      switchData.count++
+    }
   })
 
   // 计算日均事件
@@ -637,6 +671,18 @@ const analyzeData = (events) => {
     .sort((a, b) => b.count - a.count)
     .slice(0, 20) // 只显示前20个
 
+  // 转换平台切换数据为数组并排序
+  const platformSwitchList = Array.from(platformSwitches.values())
+    .sort((a, b) => b.count - a.count)
+
+  // 计算总切换次数
+  const totalSwitches = platformSwitchList.reduce((sum, item) => sum + item.count, 0)
+
+  // 添加占比信息
+  platformSwitchList.forEach(item => {
+    item.percentage = totalSwitches > 0 ? ((item.count / totalSwitches) * 100).toFixed(1) : 0
+  })
+
   return {
     totalEvents: events.length,
     activeUsers: userSet.size,
@@ -644,7 +690,9 @@ const analyzeData = (events) => {
     avgEventsPerDay,
     eventTypeStats,
     dailyStats,
-    linkClicks: linkClicksList
+    linkClicks: linkClicksList,
+    platformSwitches: platformSwitchList,
+    totalSwitches
   }
 }
 
