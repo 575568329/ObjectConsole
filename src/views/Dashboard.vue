@@ -2,26 +2,67 @@
   <div class="dashboard">
     <!-- 项目选择 -->
     <el-card class="project-selector" v-if="projectStore.projects.length > 0">
-      <el-select
-        v-model="selectedProjectId"
-        placeholder="选择项目查看数据"
-        size="large"
-        style="width: 300px"
-        @change="handleProjectChange"
-      >
-        <el-option
-          v-for="project in projectStore.projects"
-          :key="project.id"
-          :label="project.name"
-          :value="project.id"
-        />
-      </el-select>
-      <el-button type="primary" @click="loadData(true)" :loading="loading">
-        🔄 刷新数据
-      </el-button>
-      <el-tag v-if="cacheTime" type="info" class="cache-tag">
-        缓存于 {{ formatCacheTime(cacheTime) }}
-      </el-tag>
+      <div class="selector-section">
+        <div class="selector-group">
+          <div class="selector-item">
+            <label class="selector-label">选择项目</label>
+            <el-select
+              v-model="selectedProjectId"
+              placeholder="选择项目查看数据"
+              size="large"
+              style="width: 280px"
+              @change="handleProjectChange"
+            >
+              <el-option
+                v-for="project in projectStore.projects"
+                :key="project.id"
+                :label="project.name"
+                :value="project.id"
+              />
+            </el-select>
+          </div>
+
+          <div class="selector-item">
+            <label class="selector-label">日期范围</label>
+            <el-date-picker
+              v-model="dateRange"
+              type="daterange"
+              size="large"
+              range-separator="至"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              format="YYYY-MM-DD"
+              value-format="YYYY-MM-DD"
+              style="width: 280px"
+              :clearable="true"
+              @change="handleDateRangeChange"
+            />
+          </div>
+        </div>
+
+        <div class="action-group">
+          <el-button type="primary" @click="loadData(true)" :loading="loading" size="large">
+            <el-icon style="margin-right: 4px"><Refresh /></el-icon>
+            刷新数据
+          </el-button>
+          <el-tag v-if="cacheTime" type="info" class="cache-tag" size="large">
+            <el-icon style="margin-right: 4px"><Clock /></el-icon>
+            缓存于 {{ formatCacheTime(cacheTime) }}
+          </el-tag>
+        </div>
+      </div>
+
+      <!-- 日期范围统计提示 -->
+      <div v-if="dateRange && dateRange.length === 2" class="date-range-info">
+        <el-icon><Calendar /></el-icon>
+        <span>当前展示：{{ dateRange[0] }} 至 {{ dateRange[1] }}</span>
+        <el-tag type="success" size="small" style="margin-left: 8px">
+          共 {{ filteredEventsByDate.length }} 条事件
+        </el-tag>
+        <el-button text type="primary" size="small" @click="clearDateRange" style="margin-left: 8px">
+          清除日期筛选
+        </el-button>
+      </div>
     </el-card>
 
     <!-- 空状态 -->
@@ -36,7 +77,7 @@
     <!-- 数据内容 -->
     <template v-else>
       <!-- 统计卡片 -->
-      <el-row :gutter="20" class="stats-row" v-if="analytics">
+      <el-row :gutter="20" class="stats-row" v-if="displayAnalytics">
         <el-col :span="6">
           <div class="stat-card">
             <div class="stat-icon primary">
@@ -44,7 +85,7 @@
             </div>
             <div class="stat-content">
               <div class="stat-label">总事件数</div>
-              <div class="stat-value">{{ analytics.totalEvents || 0 }}</div>
+              <div class="stat-value">{{ displayAnalytics.totalEvents || 0 }}</div>
             </div>
           </div>
         </el-col>
@@ -55,7 +96,7 @@
             </div>
             <div class="stat-content">
               <div class="stat-label">活跃用户</div>
-              <div class="stat-value">{{ analytics.activeUsers || 0 }}</div>
+              <div class="stat-value">{{ displayAnalytics.activeUsers || 0 }}</div>
             </div>
           </div>
         </el-col>
@@ -66,7 +107,7 @@
             </div>
             <div class="stat-content">
               <div class="stat-label">统计天数</div>
-              <div class="stat-value">{{ analytics.days || 0 }}</div>
+              <div class="stat-value">{{ displayAnalytics.days || 0 }}</div>
             </div>
           </div>
         </el-col>
@@ -77,14 +118,14 @@
             </div>
             <div class="stat-content">
               <div class="stat-label">日均事件</div>
-              <div class="stat-value">{{ analytics.avgEventsPerDay || 0 }}</div>
+              <div class="stat-value">{{ displayAnalytics.avgEventsPerDay || 0 }}</div>
             </div>
           </div>
         </el-col>
       </el-row>
 
       <!-- 图表区域 -->
-      <el-row :gutter="20" class="charts-row" v-if="analytics">
+      <el-row :gutter="20" class="charts-row" v-if="displayAnalytics">
         <!-- 事件类型分布 -->
         <el-col :span="12">
           <el-card class="chart-card">
@@ -93,7 +134,7 @@
                 <span>事件类型分布</span>
               </div>
             </template>
-            <EventTypeChart :data="analytics.eventTypeStats" />
+            <EventTypeChart :data="displayAnalytics.eventTypeStats" />
           </el-card>
         </el-col>
 
@@ -105,20 +146,20 @@
                 <span>每日事件趋势</span>
               </div>
             </template>
-            <DailyTrendChart :data="analytics.dailyStats" />
+            <DailyTrendChart :data="displayAnalytics.dailyStats" />
           </el-card>
         </el-col>
       </el-row>
 
       <!-- 链接点击统计 -->
-      <el-row :gutter="20" class="table-row" v-if="analytics?.linkClicks && analytics.linkClicks.length > 0">
+      <el-row :gutter="20" class="table-row" v-if="displayAnalytics?.linkClicks && displayAnalytics.linkClicks.length > 0">
         <el-col :span="24">
           <el-card class="table-card">
             <template #header>
               <div class="card-header">
                 <span>🔗 链接点击统计 (Top 20)</span>
                 <div style="display: flex; gap: 12px; align-items: center;">
-                  <el-tag type="info">共 {{ analytics.linkClicks.length }} 个链接</el-tag>
+                  <el-tag type="info">共 {{ displayAnalytics.linkClicks.length }} 个链接</el-tag>
                   <el-button text type="primary" @click="showLinkStats = !showLinkStats">
                     {{ showLinkStats ? '收起' : '展开' }}
                   </el-button>
@@ -126,7 +167,7 @@
               </div>
             </template>
             <div v-show="showLinkStats">
-              <el-table :data="analytics.linkClicks" stripe style="width: 100%">
+              <el-table :data="displayAnalytics.linkClicks" stripe style="width: 100%">
                 <el-table-column type="index" label="排名" width="80" />
                 <el-table-column prop="platformName" label="分类" width="140">
                   <template #default="{ row }">
@@ -198,7 +239,7 @@
               >
                 <el-option label="全部类型" value="" />
                 <el-option
-                  v-for="[type, count] in Object.entries(analytics.eventTypeStats || {})"
+                  v-for="[type, count] in Object.entries(displayAnalytics.eventTypeStats || {})"
                   :key="type"
                   :label="`${getEventTypeName(type)} (${count})`"
                   :value="type"
@@ -301,6 +342,7 @@ import { useProjectStore } from '@/stores/projectStore'
 import EventTypeChart from '@/components/charts/EventTypeChart.vue'
 import DailyTrendChart from '@/components/charts/DailyTrendChart.vue'
 import { ElMessage } from 'element-plus'
+import { Refresh, Clock, Calendar } from '@element-plus/icons-vue'
 
 // 平台信息映射 (来自 hotSearchApi.js 的 PLATFORMS 数据)
 const PLATFORM_INFO_MAP = {
@@ -362,9 +404,11 @@ const selectedProjectId = ref(null)
 const loading = ref(false)
 const rawEvents = ref([])
 const analytics = ref(null)
-const showAllEvents = ref(false)
 const cacheTime = ref(null)
 const CACHE_DURATION = 5 * 60 * 1000 // 缓存5分钟
+
+// 日期范围选择
+const dateRange = ref(null)
 
 // 展开状态
 const showLinkStats = ref(true)
@@ -378,10 +422,41 @@ const filterEventType = ref('')
 const filterPriority = ref('')
 const filteredEvents = ref([])
 
-// 当前选中项目
-const selectedProject = computed(() => {
-  return projectStore.projects.find(p => p.id === selectedProjectId.value)
+// 根据日期范围过滤的事件
+const filteredEventsByDate = computed(() => {
+  if (!dateRange.value || dateRange.value.length !== 2) {
+    return rawEvents.value
+  }
+
+  const [startDate, endDate] = dateRange.value
+  const start = new Date(startDate).setHours(0, 0, 0, 0)
+  const end = new Date(endDate).setHours(23, 59, 59, 999)
+
+  return rawEvents.value.filter(event => {
+    const eventDate = new Date(event.timestamp).getTime()
+    return eventDate >= start && eventDate <= end
+  })
 })
+
+// 当前展示的分析数据（基于日期筛选）
+const displayAnalytics = computed(() => {
+  if (!dateRange.value || dateRange.value.length !== 2) {
+    return analytics.value
+  }
+  return analyzeData(filteredEventsByDate.value)
+})
+
+// 处理日期范围变化
+const handleDateRangeChange = () => {
+  // 日期范围变化时，重新筛选事件数据
+  handleFilter()
+}
+
+// 清除日期范围
+const clearDateRange = () => {
+  dateRange.value = null
+  handleFilter()
+}
 
 // 生成缓存 key
 const getCacheKey = (projectId) => {
@@ -606,7 +681,8 @@ const paginatedEvents = computed(() => {
 
 // 处理筛选
 const handleFilter = () => {
-  let filtered = [...rawEvents.value]
+  // 先应用日期过滤
+  let filtered = [...filteredEventsByDate.value]
 
   // 关键词筛选
   if (filterKeyword.value) {
@@ -638,8 +714,8 @@ const resetFilters = () => {
   filterKeyword.value = ''
   filterEventType.value = ''
   filterPriority.value = ''
-  filteredEvents.value = [...rawEvents.value]
-  currentPage.value = 1
+  dateRange.value = null
+  handleFilter()
 }
 
 // 页码变化
@@ -728,13 +804,62 @@ onMounted(() => {
 .dashboard {
   .project-selector {
     margin-bottom: 24px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
+
+    .selector-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-bottom: 16px;
+
+      .selector-group {
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap;
+        align-items: flex-end;
+
+        .selector-item {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+
+          .selector-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #606266;
+          }
+        }
+      }
+
+      .action-group {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+    }
+
+    .date-range-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: #f5f7fa;
+      border-radius: 6px;
+      font-size: 14px;
+      color: #606266;
+
+      .el-icon {
+        color: #409eff;
+      }
+    }
 
     .cache-tag {
-      font-size: 12px;
-      opacity: 0.8;
+      display: flex;
+      align-items: center;
+      font-size: 13px;
+      opacity: 0.9;
     }
   }
 
