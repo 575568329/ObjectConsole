@@ -272,7 +272,7 @@
               style="width: 100%; margin-top: 16px"
               :default-sort="{ prop: 'timestamp', order: 'descending' }"
             >
-              <el-table-column prop="type" label="事件类型" width="140">
+              <el-table-column prop="type" label="事件类型" min-width="140">
                 <template #default="{ row }">
                   <el-tag :type="getEventTypeColor(row.type)" size="small">
                     {{ getEventTypeName(row.type) }}
@@ -280,7 +280,7 @@
                 </template>
               </el-table-column>
 
-              <el-table-column prop="priority" label="优先级" width="90" align="center">
+              <el-table-column prop="priority" label="优先级" width="100" align="center">
                 <template #default="{ row }">
                   <el-tag
                     :type="getPriorityType(row.priority)"
@@ -292,13 +292,13 @@
                 </template>
               </el-table-column>
 
-              <el-table-column prop="timestamp" label="时间" width="165" sortable>
+              <el-table-column prop="timestamp" label="时间" min-width="165" sortable>
                 <template #default="{ row }">
                   {{ formatDateTime(row.timestamp) }}
                 </template>
               </el-table-column>
 
-              <el-table-column label="事件数据" width="120" align="center">
+              <el-table-column label="操作" width="120" align="center">
                 <template #default="{ row }">
                   <el-popover
                     placement="left"
