@@ -474,7 +474,11 @@ const getCachedData = (projectId) => {
 
       // 检查缓存是否过期
       if (now - timestamp < CACHE_DURATION) {
-        return data
+        // 返回数据和时间戳，用于设置 cacheTime
+        return {
+          ...data,
+          timestamp
+        }
       }
     }
     return null
@@ -521,7 +525,12 @@ const loadData = async (forceRefresh = true) => {
     if (cachedData) {
       rawEvents.value = cachedData.rawEvents || []
       analytics.value = cachedData.analytics || null
-      cacheTime.value = new Date(cachedData.timestamp)
+      // 设置缓存时间（如果有 timestamp）
+      if (cachedData.timestamp) {
+        cacheTime.value = new Date(cachedData.timestamp)
+      } else {
+        cacheTime.value = null
+      }
       // 初始化筛选数据
       filteredEvents.value = [...rawEvents.value]
       currentPage.value = 1
@@ -529,6 +538,9 @@ const loadData = async (forceRefresh = true) => {
       return
     }
   }
+
+  // 如果没有缓存或强制刷新，清空 cacheTime
+  cacheTime.value = null
 
   loading.value = true
   try {
@@ -639,7 +651,14 @@ const analyzeData = (events) => {
 // 格式化缓存时间
 const formatCacheTime = (time) => {
   if (!time) return ''
+
   const date = new Date(time)
+
+  // 检查是否是有效日期
+  if (isNaN(date.getTime())) {
+    return ''
+  }
+
   const now = new Date()
   const diff = now - date
 
@@ -856,10 +875,20 @@ onMounted(() => {
     }
 
     .cache-tag {
-      display: flex;
+      display: inline-flex;
       align-items: center;
       font-size: 13px;
       opacity: 0.9;
+
+      :deep(.el-tag__content) {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .el-icon {
+        vertical-align: middle;
+      }
     }
   }
 
