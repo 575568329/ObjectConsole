@@ -546,8 +546,8 @@ const loadData = async (forceRefresh = true) => {
       } else {
         cacheTime.value = null
       }
-      // 初始化筛选数据
-      filteredEvents.value = [...rawEvents.value]
+      // 初始化筛选数据并按时间戳降序排序
+      filteredEvents.value = [...rawEvents.value].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
       currentPage.value = 1
       ElMessage.info('已加载缓存数据')
       return
@@ -563,8 +563,8 @@ const loadData = async (forceRefresh = true) => {
     rawEvents.value = data?.events || []
     analytics.value = analyzeData(rawEvents.value)
 
-    // 初始化筛选数据
-    filteredEvents.value = [...rawEvents.value]
+    // 初始化筛选数据并按时间戳降序排序
+    filteredEvents.value = [...rawEvents.value].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
     currentPage.value = 1
 
     // 保存到缓存
@@ -772,6 +772,9 @@ const handleFilter = () => {
   if (filterPriority.value) {
     filtered = filtered.filter(event => event.priority === filterPriority.value)
   }
+
+  // 按时间戳降序排序（最新的在最前面）
+  filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
 
   filteredEvents.value = filtered
   currentPage.value = 1 // 重置到第一页
