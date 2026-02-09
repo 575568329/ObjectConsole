@@ -645,7 +645,8 @@ const analyzeData = (events) => {
 
     // 平台切换统计
     if (event.type === 'platform_switch') {
-      const platformId = event.data?.platform || event.data?.platformId || 'unknown'
+      // platform_switch 事件使用 to_platform 字段
+      const platformId = event.data?.to_platform || event.data?.platform || 'unknown'
       const platformInfo = getPlatformInfo(platformId)
       const platformName = platformInfo.name
 
