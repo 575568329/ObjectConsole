@@ -12,6 +12,15 @@ const BUILT_IN_PROJECTS = [
     description: '🔥 摸鱼热搜 - 全网热搜聚合平台',
     builtIn: true,
     createdAt: '2024-01-01T00:00:00.000Z'
+  },
+  {
+    id: 'built_in_mini_games',
+    name: '小游戏',
+    publicId: '6467fb014e5041e6e16559d8274a8122',
+    basketName: 'GAME',
+    description: '🎮 小游戏 - 精选网页小游戏合集，包含俄罗斯方块、小黑屋、糖果盒子等',
+    builtIn: true,
+    createdAt: '2024-01-01T00:00:00.000Z'
   }
 ]
 
@@ -135,6 +144,15 @@ export const useProjectStore = defineStore('project', () => {
       const originalKey = pantryClient.key
       pantryClient.key = project.pantryKey
 
+      // 如果项目使用公开链接格式
+      if (project.publicId) {
+        const data = await pantryClient.getBasket(project.basketName, project.pantryKey, project.publicId)
+        // 恢复原 key
+        pantryClient.key = originalKey
+        return data
+      }
+
+      // 标准 Pantry Key 格式
       const data = await pantryClient.getBasket(project.basketName)
 
       // 恢复原 key

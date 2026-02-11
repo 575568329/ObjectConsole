@@ -18,6 +18,7 @@ let chart = null
 
 // 事件类型中文名称映射
 const eventTypeNames = {
+  // 摸鱼热搜事件
   'platform_switch': '平台切换',
   'platform_load_start': '平台加载开始',
   'platform_load_success': '平台加载成功',
@@ -41,7 +42,14 @@ const eventTypeNames = {
   'app_background': '应用后台',
   'app_close': '应用关闭',
   'error': '错误',
-  'performance_warning': '性能警告'
+  'performance_warning': '性能警告',
+  // 小游戏事件
+  'pv': '页面访问',
+  'ua': '用户行为',
+  'stats': '统计数据',
+  'gs': '游戏会话开始',
+  'ge': '游戏会话结束',
+  'so': '存档操作'
 }
 
 // 初始化图表
