@@ -67,28 +67,59 @@
             </div>
           </el-card>
         </el-col>
-        <el-col :span="6">
-          <el-card class="stat-card">
-            <div class="stat-content">
-              <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)">📊</div>
-              <div class="stat-info">
-                <div class="stat-label">总会话数</div>
-                <div class="stat-value">{{ stats.totalSessions }}</div>
+
+        <!-- 有游戏会话数据时显示总会话数 -->
+        <template v-if="stats.hasSessionData">
+          <el-col :span="6">
+            <el-card class="stat-card">
+              <div class="stat-content">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)">📊</div>
+                <div class="stat-info">
+                  <div class="stat-label">总会话数</div>
+                  <div class="stat-value">{{ stats.totalSessions }}</div>
+                </div>
               </div>
-            </div>
-          </el-card>
-        </el-col>
-        <el-col :span="6">
-          <el-card class="stat-card">
-            <div class="stat-content">
-              <div class="stat-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)">⏱️</div>
-              <div class="stat-info">
-                <div class="stat-label">平均时长</div>
-                <div class="stat-value">{{ stats.avgDuration }}</div>
+            </el-card>
+          </el-col>
+          <el-col :span="6">
+            <el-card class="stat-card">
+              <div class="stat-content">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)">⏱️</div>
+                <div class="stat-info">
+                  <div class="stat-label">平均时长</div>
+                  <div class="stat-value">{{ stats.avgDuration }}</div>
+                </div>
               </div>
-            </div>
-          </el-card>
-        </el-col>
+            </el-card>
+          </el-col>
+        </template>
+
+        <!-- 没有游戏会话数据时显示总事件数和用户操作数 -->
+        <template v-else>
+          <el-col :span="6">
+            <el-card class="stat-card">
+              <div class="stat-content">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)">📊</div>
+                <div class="stat-info">
+                  <div class="stat-label">总事件数</div>
+                  <div class="stat-value">{{ stats.totalEvents }}</div>
+                </div>
+              </div>
+            </el-card>
+          </el-col>
+          <el-col :span="6">
+            <el-card class="stat-card">
+              <div class="stat-content">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)">👆</div>
+                <div class="stat-info">
+                  <div class="stat-label">用户操作</div>
+                  <div class="stat-value">{{ stats.userActions }}</div>
+                </div>
+              </div>
+            </el-card>
+          </el-col>
+        </template>
+
         <el-col :span="6">
           <el-card class="stat-card">
             <div class="stat-content">
@@ -176,16 +207,19 @@ const stats = computed(() => {
   if (!rawEvents.value.length) {
     return {
       totalGames: GAMES_LIST.length,
-      totalSessions: 0,
-      avgDuration: '0分钟',
-      activeUsers: 0
+      totalEvents: 0,
+      userActions: 0,
+      activeUsers: 0,
+      hasSessionData: false
     }
   }
 
   const gsEvents = rawEvents.value.filter(e => e.type === 'gs')
   const geEvents = rawEvents.value.filter(e => e.type === 'ge')
+  const uaEvents = rawEvents.value.filter(e => e.type === 'ua')
+  const hasSessionData = gsEvents.length > 0 || geEvents.length > 0
 
-  // 计算平均时长
+  // 计算平均时长（如果有游戏会话数据）
   let totalDuration = 0
   geEvents.forEach(e => {
     totalDuration += e.data?.d || 0
@@ -210,9 +244,12 @@ const stats = computed(() => {
 
   return {
     totalGames: GAMES_LIST.length,
+    totalEvents: rawEvents.value.length,
     totalSessions: gsEvents.length,
     avgDuration: formatDuration(avgDurationMs),
-    activeUsers: userSet.size
+    userActions: uaEvents.length,
+    activeUsers: userSet.size,
+    hasSessionData
   }
 })
 
@@ -540,6 +577,20 @@ const loadData = async () => {
       eventTypeCounts[e.type] = (eventTypeCounts[e.type] || 0) + 1
     })
     console.log('事件类型分布:', eventTypeCounts)
+
+    // 查看stats事件的详细内容
+    const statsEvents = events.filter(e => e.type === 'stats')
+    console.log('stats事件数量:', statsEvents.length)
+    if (statsEvents.length > 0) {
+      console.log('第一个stats事件内容:', statsEvents[0])
+    }
+
+    // 查看ua事件的详细内容
+    const uaEvents = events.filter(e => e.type === 'ua')
+    console.log('ua事件数量:', uaEvents.length)
+    if (uaEvents.length > 0) {
+      console.log('前3个ua事件:', uaEvents.slice(0, 3))
+    }
 
     rawEvents.value = events
     cacheTime.value = Date.now()
