@@ -409,7 +409,20 @@ const PLATFORM_INFO_MAP = {
   'hellogithub': { name: 'HelloGitHub', category: '科技' },
   'zhuishu': { name: '追书排行', category: '阅读' },
   'artic': { name: '芝加哥艺术学院', category: '艺术' },
-  'metmuseum': { name: '大都会博物馆', category: '艺术' }
+  'metmuseum': { name: '大都会博物馆', category: '艺术' },
+
+  // 金融/股票（新增）
+  'stock-hot': { name: '热门股票', category: '金融' },
+  'stock-sh': { name: '上证指数', category: '金融' },
+  'stock-tech': { name: '科技股', category: '金融' },
+
+  // 游戏（新增）
+  'epic-free': { name: 'Epic免费游戏', category: '游戏' },
+
+  // 开发者工具（新增）
+  'github-trending': { name: 'GitHub热榜', category: '科技' },
+  'hacker-news': { name: 'Hacker News', category: '科技' },
+  'product-hunt': { name: 'Product Hunt', category: '科技' }
 }
 
 // 获取平台信息
