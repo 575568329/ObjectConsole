@@ -229,16 +229,20 @@ const stats = computed(() => {
   // 活跃用户
   const userSet = new Set()
 
-  // 添加顶层用户ID
+  // 从事件中收集用户ID（小游戏数据格式：u 字段在事件层级）
+  rawEvents.value.forEach(e => {
+    // 优先使用事件层级的 u 字段（小游戏格式）
+    if (e.u) userSet.add(e.u)
+    // 备用：检查 data 内的 u 字段
+    if (e.data?.u) userSet.add(e.data.u)
+    // 备用：检查 user_id 字段
+    if (e.data?.user_id) userSet.add(e.data.user_id)
+  })
+
+  // 添加顶层用户ID（兜底）
   if (topLevelUserId.value) {
     userSet.add(topLevelUserId.value)
   }
-
-  // 从事件中收集用户ID
-  rawEvents.value.forEach(e => {
-    if (e.data?.u) userSet.add(e.data.u)
-    if (e.data?.user_id) userSet.add(e.data.user_id)
-  })
 
   console.log('活跃用户:', userSet.size, '用户列表:', Array.from(userSet))
 
@@ -566,6 +570,7 @@ const loadData = async () => {
         type: event.t,
         timestamp: event.ts,
         data: event.d,
+        u: event.u, // 保留用户ID字段
         priority: event.priority || 'medium'
       }))
       console.log('转换后的事件示例:', events[0])

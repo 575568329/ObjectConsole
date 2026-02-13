@@ -591,6 +591,7 @@ const loadData = async (forceRefresh = true) => {
         type: event.t,
         timestamp: event.ts,
         data: event.d,
+        u: event.u, // 保留用户ID字段
         priority: event.priority || 'medium'
       }))
     }
