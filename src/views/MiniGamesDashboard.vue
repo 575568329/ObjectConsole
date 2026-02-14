@@ -195,6 +195,22 @@ const topLevelUserId = ref(null) // 存储顶层用户ID
 const dateRange = ref(null)
 const cacheTime = ref(null)
 
+// 根据日期范围过滤的事件
+const filteredEventsByDate = computed(() => {
+  if (!dateRange.value || dateRange.value.length !== 2) {
+    return rawEvents.value
+  }
+
+  const [startDate, endDate] = dateRange.value
+  const start = new Date(startDate).setHours(0, 0, 0, 0)
+  const end = new Date(endDate).setHours(23, 59, 59, 999)
+
+  return filteredEventsByDate.value.filter(event => {
+    const eventDate = new Date(event.timestamp).getTime()
+    return eventDate >= start && eventDate <= end
+  })
+})
+
 // 获取当前项目
 const currentProject = computed(() => {
   // 从路由参数获取项目ID，如果没有则默认为小游戏项目
@@ -204,7 +220,10 @@ const currentProject = computed(() => {
 
 // 核心指标统计
 const stats = computed(() => {
-  if (!rawEvents.value.length) {
+  // 使用日期过滤后的事件数据
+  const events = filteredEventsByDate.value
+
+  if (!events.length) {
     return {
       totalGames: GAMES_LIST.length,
       totalEvents: 0,
@@ -214,9 +233,9 @@ const stats = computed(() => {
     }
   }
 
-  const gsEvents = rawEvents.value.filter(e => e.type === 'gs')
-  const geEvents = rawEvents.value.filter(e => e.type === 'ge')
-  const uaEvents = rawEvents.value.filter(e => e.type === 'ua')
+  const gsEvents = events.filter(e => e.type === 'gs')
+  const geEvents = events.filter(e => e.type === 'ge')
+  const uaEvents = events.filter(e => e.type === 'ua')
   const hasSessionData = gsEvents.length > 0 || geEvents.length > 0
 
   // 计算平均时长（如果有游戏会话数据）
@@ -230,7 +249,7 @@ const stats = computed(() => {
   const userSet = new Set()
 
   // 从事件中收集用户ID（小游戏数据格式：u 字段在事件层级）
-  rawEvents.value.forEach(e => {
+  events.forEach(e => {  // ✅ 使用过滤后的事件
     // 优先使用事件层级的 u 字段（小游戏格式）
     if (e.u) userSet.add(e.u)
     // 备用：检查 data 内的 u 字段
@@ -248,7 +267,7 @@ const stats = computed(() => {
 
   return {
     totalGames: GAMES_LIST.length,
-    totalEvents: rawEvents.value.length,
+    totalEvents: filteredEventsByDate.value.length,  // ✅ 使用过滤后的事件数
     totalSessions: gsEvents.length,
     avgDuration: formatDuration(avgDurationMs),
     userActions: uaEvents.length,
@@ -262,7 +281,7 @@ const gamePopularity = computed(() => {
   const gameClicks = {}
 
   // 从 stats 事件读取
-  rawEvents.value
+  filteredEventsByDate.value
     .filter(e => e.type === 'stats')
     .forEach(e => {
       if (e.data?.gc) {
@@ -273,7 +292,7 @@ const gamePopularity = computed(() => {
     })
 
   // 从 game_click 事件统计
-  rawEvents.value
+  filteredEventsByDate.value
     .filter(e => e.type === 'ua' && e.data?.a === 'game_click')
     .forEach(e => {
       const gameId = e.data?.g
@@ -344,7 +363,7 @@ const categoryPreference = computed(() => {
 
 // 会话时长分析
 const sessionDuration = computed(() => {
-  const geEvents = rawEvents.value.filter(e => e.type === 'ge')
+  const geEvents = filteredEventsByDate.value.filter(e => e.type === 'ge')
   const byGame = {}
 
   geEvents.forEach(e => {
