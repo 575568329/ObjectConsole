@@ -205,7 +205,7 @@ const filteredEventsByDate = computed(() => {
   const start = new Date(startDate).setHours(0, 0, 0, 0)
   const end = new Date(endDate).setHours(23, 59, 59, 999)
 
-  return filteredEventsByDate.value.filter(event => {
+  return rawEvents.value.filter(event => {  // ✅ 修复：使用 rawEvents.value
     const eventDate = new Date(event.timestamp).getTime()
     return eventDate >= start && eventDate <= end
   })
