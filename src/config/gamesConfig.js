@@ -44,6 +44,22 @@ export const GAMES_INFO = {
     icon: '🔄',
     category: 'rpg',
     color: '#48bb78'
+  },
+  textadventure: {
+    id: 'textadventure',
+    name: '深空迷梦',
+    englishName: 'Deep Space Reverie',
+    icon: '🚀',
+    category: 'rpg',
+    color: '#3498db'
+  },
+  tank: {
+    id: 'tank',
+    name: '坦克大战',
+    englishName: 'Tank Battle',
+    icon: '🎖️',
+    category: 'strategy',
+    color: '#5c6bc0'
   }
 }
 

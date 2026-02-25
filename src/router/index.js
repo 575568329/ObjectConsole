@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { analyticsTracker } from '@/services/analyticsTracker'
 
 const routes = [
   {
@@ -34,6 +35,13 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+// 路由变化时追踪页面访问
+router.afterEach((to) => {
+  if (to.meta?.title) {
+    analyticsTracker.trackPageView(to.meta.title)
+  }
 })
 
 export default router

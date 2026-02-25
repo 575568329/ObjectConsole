@@ -54,12 +54,24 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useProjectStore } from './stores/projectStore'
+import { analyticsTracker } from './services/analyticsTracker'
 
 const route = useRoute()
 const projectStore = useProjectStore()
+
+// 初始化埋点
+onMounted(() => {
+  analyticsTracker.init()
+  analyticsTracker.trackPageView('app_start')
+})
+
+onUnmounted(() => {
+  analyticsTracker.stopAutoSync()
+  analyticsTracker.sync()
+})
 
 const currentRoute = computed(() => route.path)
 const currentProject = computed(() => projectStore.currentProject)
