@@ -44,6 +44,30 @@ export const GAMES_INFO = {
     icon: '🔄',
     category: 'rpg',
     color: '#48bb78'
+  },
+  circlepath: {
+    id: 'circlepath',
+    name: '环形之路',
+    englishName: 'Circle Path',
+    icon: '●',
+    category: 'puzzle',
+    color: '#62bd18'
+  },
+  textadventure: {
+    id: 'textadventure',
+    name: '深空迷梦',
+    englishName: 'Deep Space Reverie',
+    icon: '🚀',
+    category: 'rpg',
+    color: '#3498db'
+  },
+  tank: {
+    id: 'tank',
+    name: '坦克大战',
+    englishName: 'Tank Battle',
+    icon: '🎖️',
+    category: 'strategy',
+    color: '#5c6bc0'
   }
 }
 

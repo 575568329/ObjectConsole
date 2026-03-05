@@ -68,12 +68,36 @@
           </el-card>
         </el-col>
 
+        <el-col :span="6">
+          <el-card class="stat-card">
+            <div class="stat-content">
+              <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)">👥</div>
+              <div class="stat-info">
+                <div class="stat-label">总用户数</div>
+                <div class="stat-value">{{ stats.totalUsers }}</div>
+              </div>
+            </div>
+          </el-card>
+        </el-col>
+
+        <el-col :span="6">
+          <el-card class="stat-card">
+            <div class="stat-content">
+              <div class="stat-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)">⚡</div>
+              <div class="stat-info">
+                <div class="stat-label">今日活跃 (DAU)</div>
+                <div class="stat-value">{{ stats.activeUsers }}</div>
+              </div>
+            </div>
+          </el-card>
+        </el-col>
+
         <!-- 有游戏会话数据时显示总会话数 -->
         <template v-if="stats.hasSessionData">
           <el-col :span="6">
             <el-card class="stat-card">
               <div class="stat-content">
-                <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)">📊</div>
+                <div class="stat-icon" style="background: linear-gradient(135deg, #f6d365 0%, #fda085 100%)">📊</div>
                 <div class="stat-info">
                   <div class="stat-label">总会话数</div>
                   <div class="stat-value">{{ stats.totalSessions }}</div>
@@ -81,6 +105,26 @@
               </div>
             </el-card>
           </el-col>
+        </template>
+        <!-- 没有游戏会话数据时显示总事件数 -->
+        <template v-else>
+          <el-col :span="6">
+            <el-card class="stat-card">
+              <div class="stat-content">
+                <div class="stat-icon" style="background: linear-gradient(135deg, #f6d365 0%, #fda085 100%)">📊</div>
+                <div class="stat-info">
+                  <div class="stat-label">总事件数</div>
+                  <div class="stat-value">{{ stats.totalEvents }}</div>
+                </div>
+              </div>
+            </el-card>
+          </el-col>
+        </template>
+      </el-row>
+
+      <!-- 次要指标行 -->
+      <el-row :gutter="20" class="stats-cards-row" style="margin-top: 20px;">
+        <template v-if="stats.hasSessionData">
           <el-col :span="6">
             <el-card class="stat-card">
               <div class="stat-content">
@@ -93,20 +137,7 @@
             </el-card>
           </el-col>
         </template>
-
-        <!-- 没有游戏会话数据时显示总事件数和用户操作数 -->
         <template v-else>
-          <el-col :span="6">
-            <el-card class="stat-card">
-              <div class="stat-content">
-                <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)">📊</div>
-                <div class="stat-info">
-                  <div class="stat-label">总事件数</div>
-                  <div class="stat-value">{{ stats.totalEvents }}</div>
-                </div>
-              </div>
-            </el-card>
-          </el-col>
           <el-col :span="6">
             <el-card class="stat-card">
               <div class="stat-content">
@@ -119,18 +150,6 @@
             </el-card>
           </el-col>
         </template>
-
-        <el-col :span="6">
-          <el-card class="stat-card">
-            <div class="stat-content">
-              <div class="stat-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)">👥</div>
-              <div class="stat-info">
-                <div class="stat-label">活跃用户</div>
-                <div class="stat-value">{{ stats.activeUsers }}</div>
-              </div>
-            </div>
-          </el-card>
-        </el-col>
       </el-row>
 
       <!-- 游戏热度排行 + 分类偏好 -->
@@ -191,6 +210,7 @@ const projectStore = useProjectStore()
 const loading = ref(false)
 const error = ref(null)
 const rawEvents = ref([])
+const summaryData = ref(null) // ✅ 新增：存储摘要数据
 const topLevelUserId = ref(null) // 存储顶层用户ID
 const dateRange = ref(null)
 const cacheTime = ref(null)
@@ -223,12 +243,16 @@ const stats = computed(() => {
   // 使用日期过滤后的事件数据
   const events = filteredEventsByDate.value
 
+  // 获取今日日期 (YYYY-MM-DD)
+  const today = new Date().toISOString().split('T')[0]
+
   if (!events.length) {
     return {
       totalGames: GAMES_LIST.length,
       totalEvents: 0,
       userActions: 0,
-      activeUsers: 0,
+      activeUsers: summaryData.value?.dailyActive?.[today]?.length || 0, // ✅ 优先使用摘要数据
+      totalUsers: summaryData.value?.totalUsers || 0, // ✅ 新增：总用户数
       hasSessionData: false
     }
   }
@@ -248,8 +272,13 @@ const stats = computed(() => {
   // 活跃用户
   const userSet = new Set()
 
+  // 如果有摘要数据中的今日活跃用户，加入 set
+  if (summaryData.value?.dailyActive?.[today]) {
+    summaryData.value.dailyActive[today].forEach(id => userSet.add(id))
+  }
+
   // 从事件中收集用户ID（小游戏数据格式：u 字段在事件层级）
-  events.forEach(e => {  // ✅ 使用过滤后的事件
+  events.forEach(e => {
     // 优先使用事件层级的 u 字段（小游戏格式）
     if (e.u) userSet.add(e.u)
     // 备用：检查 data 内的 u 字段
@@ -263,15 +292,14 @@ const stats = computed(() => {
     userSet.add(topLevelUserId.value)
   }
 
-  console.log('活跃用户:', userSet.size, '用户列表:', Array.from(userSet))
-
   return {
     totalGames: GAMES_LIST.length,
-    totalEvents: filteredEventsByDate.value.length,  // ✅ 使用过滤后的事件数
+    totalEvents: filteredEventsByDate.value.length,
     totalSessions: gsEvents.length,
     avgDuration: formatDuration(avgDurationMs),
     userActions: uaEvents.length,
     activeUsers: userSet.size,
+    totalUsers: summaryData.value?.totalUsers || userSet.size, // ✅ 优先使用摘要总用户数
     hasSessionData
   }
 })
@@ -279,6 +307,13 @@ const stats = computed(() => {
 // 游戏热度排行
 const gamePopularity = computed(() => {
   const gameClicks = {}
+
+  // ✅ 优先从摘要数据中读取历史累计数据
+  if (summaryData.value?.gameStats) {
+    Object.entries(summaryData.value.gameStats).forEach(([gameId, data]) => {
+      gameClicks[gameId] = (gameClicks[gameId] || 0) + (data.p || 0)
+    })
+  }
 
   // 从 stats 事件读取
   filteredEventsByDate.value
@@ -302,7 +337,7 @@ const gamePopularity = computed(() => {
     })
 
   // 从 gs 事件统计会话数
-  rawEvents.value
+  filteredEventsByDate.value
     .filter(e => e.type === 'gs')
     .forEach(e => {
       const gameId = e.data?.g
@@ -338,26 +373,31 @@ const categoryPreference = computed(() => {
   }
 
   // 从 stats 事件读取
-  rawEvents.value
-    .filter(e => e.type === 'stats')
-    .forEach(e => {
-      if (e.data?.cc) {
-        Object.entries(e.data.cc).forEach(([category, count]) => {
-          categoryStats[category] = (categoryStats[category] || 0) + count
-        })
-      }
-    })
+  const statsEvents = rawEvents.value.filter(e => e.type === 'stats')
+  console.log('分类偏好 - stats事件数量:', statsEvents.length)
+  console.log('分类偏好 - 第一个stats事件:', statsEvents[0])
+
+  statsEvents.forEach(e => {
+    if (e.data?.cc) {
+      console.log('处理stats事件的cc数据:', e.data.cc)
+      Object.entries(e.data.cc).forEach(([category, count]) => {
+        categoryStats[category] = (categoryStats[category] || 0) + count
+      })
+    }
+  })
 
   // 从 category_change 事件统计
-  rawEvents.value
-    .filter(e => e.type === 'ua' && e.data?.a === 'category_change')
-    .forEach(e => {
-      const toCategory = e.data?.to
-      if (toCategory) {
-        categoryStats[toCategory] = (categoryStats[toCategory] || 0) + 1
-      }
-    })
+  const ccEvents = rawEvents.value.filter(e => e.type === 'ua' && e.data?.a === 'category_change')
+  console.log('分类偏好 - category_change事件数量:', ccEvents.length)
 
+  ccEvents.forEach(e => {
+    const toCategory = e.data?.to
+    if (toCategory && toCategory !== e.data?.from) {  // 只统计真实的切换
+      categoryStats[toCategory] = (categoryStats[toCategory] || 0) + 1
+    }
+  })
+
+  console.log('分类偏好 - 最终结果:', categoryStats)
   return categoryStats
 })
 
@@ -365,6 +405,21 @@ const categoryPreference = computed(() => {
 const sessionDuration = computed(() => {
   const geEvents = filteredEventsByDate.value.filter(e => e.type === 'ge')
   const byGame = {}
+
+  // ✅ 优先从摘要数据中读取历史累计时长
+  if (summaryData.value?.gameStats) {
+    Object.entries(summaryData.value.gameStats).forEach(([gameId, data]) => {
+      if (!byGame[gameId]) {
+        byGame[gameId] = {
+          gameId,
+          totalDuration: data.d || 0,
+          count: data.p || 0,
+          maxDuration: 0,
+          minDuration: Infinity
+        }
+      }
+    })
+  }
 
   geEvents.forEach(e => {
     const gameId = e.data?.g
@@ -574,7 +629,9 @@ const loadData = async () => {
 
     // 保存顶层用户ID
     topLevelUserId.value = data?.u || null
+    summaryData.value = data?.summary || null // ✅ 保存摘要数据
     console.log('顶层用户ID:', topLevelUserId.value)
+    console.log('摘要数据:', summaryData.value)
 
     // 检测并转换小游戏项目的数据格式
     let events = data?.events || []
