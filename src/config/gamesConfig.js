@@ -45,14 +45,6 @@ export const GAMES_INFO = {
     category: 'rpg',
     color: '#48bb78'
   },
-  circlepath: {
-    id: 'circlepath',
-    name: '环形之路',
-    englishName: 'Circle Path',
-    icon: '●',
-    category: 'puzzle',
-    color: '#62bd18'
-  },
   textadventure: {
     id: 'textadventure',
     name: '深空迷梦',

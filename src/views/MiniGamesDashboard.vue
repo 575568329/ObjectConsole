@@ -202,6 +202,7 @@ import NewVsContinueChart from '@/components/miniGames/NewVsContinueChart.vue'
 import GameActivityTimeline from '@/components/miniGames/GameActivityTimeline.vue'
 import { getGameInfo, getCategoryInfo, formatDuration, formatRelativeTime } from '@/config/gamesConfig'
 import { GAMES_LIST } from '@/config/gamesConfig'
+import { normalizeEvent, getGameId, getUserId, getTimestamp } from '@/utils/eventNormalizer'
 
 const route = useRoute()
 const projectStore = useProjectStore()
@@ -639,18 +640,18 @@ const loadData = async () => {
     console.log('事件数量:', events.length)
     console.log('第一个事件:', events[0])
 
-    // 检测是否为小游戏格式
-    if (events.length > 0 && events[0].t) {
-      console.log('检测到小游戏格式，正在转换...')
-      events = events.map(event => ({
-        type: event.t,
-        timestamp: event.ts,
-        data: event.d,
-        u: event.u, // 保留用户ID字段
+    // 统一事件格式（兼容新旧两种格式）
+    events = events.map(event => {
+      const normalized = normalizeEvent(event)
+      return {
+        type: normalized.type,
+        timestamp: normalized.timestamp,
+        data: normalized.data,
+        u: normalized.userId,
         priority: event.priority || 'medium'
-      }))
-      console.log('转换后的事件示例:', events[0])
-    }
+      }
+    })
+    console.log('标准化后的事件示例:', events[0])
 
     // 统计事件类型
     const eventTypeCounts = {}
